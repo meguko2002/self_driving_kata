@@ -2,7 +2,7 @@
 
 const int MOTOR_DELAY_US = 320;   // 0.32msec/pulse or 2.67msec/deg
 // 0deg: 800ps,  90deg: 1550ps,  180deg: 2200ps
-const int MIN_POS = 800;
+const int MIN_POS = 800;//
 const int MAX_POS = 2200;
 const int pos_range = (MAX_POS - MIN_POS) / 2;
 const int ctr_pos = (MAX_POS + MIN_POS) / 2;
