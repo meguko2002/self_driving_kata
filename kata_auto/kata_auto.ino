@@ -2,8 +2,11 @@
 
 const int MOTOR_DELAY_US = 320;   // 0.32msec/pulse or 2.67msec/deg
 // 0deg: 800ps,  90deg: 1550ps,  180deg: 2200ps
-const int MIN_POS = 0;//
-const int MAX_POS = 20;
+#define MIN_POS  -10
+#define MAX_POS  10
+const int INIT_POS_L = 3;
+const int INIT_POS_R = 5;
+
 const int pos_range = (MAX_POS - MIN_POS) / 2;
 const int ctr_pos = (MAX_POS + MIN_POS) / 2;
 const int dir[9][2] = {  //dir[command]
@@ -21,6 +24,7 @@ const int dir[9][2] = {  //dir[command]
 const int keyset[9] = {6, 9, 8, 7, 4, 1, 2, 3, 5};
 const int dir_num = sizeof dir / sizeof dir[0] ;
 
+
 #define SERVO_L 9
 #define SERVO_R 6
 
@@ -36,30 +40,22 @@ int get_command_from_key(int key) {
   return command;
 }
 
-void tilt_field(int command, int *pos_l, int *pos_r) {
-  //  int *pos_l = servo_l.readMicroseconds();
-  //  int *pos_r = servo_l.readMicroseconds();
-  static int pre_command=8, pre_pos_l=MIN_POS, pre_pos_r=MIN_POS;
-  int target[2], act_index[2], qt_l, qt_r;
-  int act_num = sizeof act_index / sizeof act_index[0] ;
+void tilt_field(int command, int *pos) {
+  static int pre_command = -1;
+  static int o_pos[2] = {INIT_POS_L, INIT_POS_R};
+  int target[2] , pt[2], act_index[2];
+  const int act_num = 2;
   int next_action_list[2][2];
-  for (int i = 0; i < 2; i++) target[i] = dir[command][i] * pos_range + ctr_pos;
-  if (command == pre_command) {
-    qt_l = target[0] - pre_pos_l;
-    qt_r = target[1] - pre_pos_r;
-  }
-  else {
-    qt_l = target[0] - *pos_l;
-    qt_r = target[1] - *pos_r;
-    pre_pos_l = *pos_l;
-    pre_pos_r = *pos_r;
-  }
-  pre_command = command;
+  //  int *pos[0] = servo_l.readMicroseconds();
+  //  int *pos[1] = servo_l.readMicroseconds();
 
-  if (qt_l == 0 & qt_r == 0) return; //なにもしない
-  if (qt_l > 0) {
-    if (qt_r > 0) {
-      if (qt_r < qt_l) {
+  for (int i = 0; i < 2; i++) target[i] = dir[command][i] * pos_range + ctr_pos;
+  for (int i = 0; i < 2; i++) pt[i] = target[i] - pos[i];
+
+  if (pt[0] == 0 & pt[1] == 0) return; //なにもしない
+  else if (pt[0] > 0) {
+    if (pt[1] > 0) {
+      if (pt[1] < pt[0]) {
         act_index[0] = 0;
         act_index[1] = 1;
       }
@@ -69,7 +65,7 @@ void tilt_field(int command, int *pos_l, int *pos_r) {
       }
     }
     else {
-      if (qt_r < -qt_l) {
+      if (pt[1] < -pt[0]) {
         act_index[0] = 6;
         act_index[1] = 7;
       }
@@ -80,8 +76,8 @@ void tilt_field(int command, int *pos_l, int *pos_r) {
     }
   }
   else {
-    if (qt_r > 0) {
-      if (qt_r > -qt_l) {
+    if (pt[1] > 0) {
+      if (pt[1] > -pt[0]) {
         act_index[0] = 2;
         act_index[1] = 3;
       }
@@ -91,7 +87,7 @@ void tilt_field(int command, int *pos_l, int *pos_r) {
       }
     }
     else {
-      if (qt_r > qt_l) {
+      if (pt[1] > pt[0]) {
         act_index[0] = 4;
         act_index[1] = 5;
       }
@@ -101,24 +97,31 @@ void tilt_field(int command, int *pos_l, int *pos_r) {
       }
     }
   }
-  int act,qn_l, qn_r, inner_qnqt;
-  float cos2, costmp, norm_qn, norm_qt;
+  int act, on[2], ot[2], inner_onot;
+  float cos2, cosmax, norm_on, norm_ot;
+
+  if (command == pre_command) for (int i = 0; i < 2; i++){
+    ot[i] = target[i] - o_pos[i];
+  }
+  else for (int i = 0; i < 2; i++) o_pos[i] = pos[i];
+  pre_command = command;
+
   for (int i = 0; i < 2; i++) {
-    qn_l = dir[act_index[i]][0] - pre_pos_l;
-    qn_r = dir[act_index[i]][1] - pre_pos_r;
-    inner_qnqt = qn_l * qt_l + qn_r * qt_r;
-    norm_qn = sqrt(qn_l * qn_l + qn_r * qn_r);
-    norm_qt = sqrt(qt_l * qt_l + qt_r * qt_r);
-    cos2 = inner_qnqt / norm_qn / norm_qt;
-    if (i == 0 | costmp > cos2) {
-      costmp = cos2;
+    for (int j = 0 ; j < 2; j++){
+      on[j] = pos[j] + dir[act_index[i]][j] - o_pos[j];
+    }
+    inner_onot = on[0] * ot[0] + on[1] * ot[1];
+    norm_on = sqrt(on[0] * on[0] + on[1] * on[1]);
+    norm_ot = sqrt(ot[0] * ot[0] + ot[1] * ot[1]);
+    cos2 = inner_onot / norm_on / norm_ot;
+    if (i == 0 | cosmax < cos2) {
+      cosmax = cos2;
       act = act_index[i];
     }
   }
-  *pos_l = constrain(*pos_l + dir[act][0], MIN_POS, MAX_POS);
-  *pos_r = constrain(*pos_r + dir[act][1], MIN_POS, MAX_POS);
-  //  servo_l.writeMicroseconds(pos_l);
-  //  servo_r.writeMicroseconds(pos_r);
+  for (int i = 0; i < 2; i++)  pos[i] = constrain(pos[i] + dir[act][i], MIN_POS, MAX_POS);
+  //  servo_l.writeMicroseconds(pos[0]);
+  //  servo_r.writeMicroseconds(pos[1]);
 }
 
 void setup() {
@@ -135,8 +138,7 @@ void setup() {
 void loop() {
   char key;
   int command;
-  static int pos_l = 3;
-  static int pos_r = 5;
+  static int pos[2] = {INIT_POS_L, INIT_POS_R};
   unsigned long time;
   Serial.println("key waiting");
   while (1) {
@@ -148,17 +150,16 @@ void loop() {
       command = get_command_from_key(key);
       Serial.print("command: ");
       Serial.println(command);
-      delay(1000);
       if (command == -1) {
         Serial.println("input 1-9");
       }
       else {
         time = millis();
         for (int i = 0; i < 10; i++) {
-          tilt_field(command, &pos_l, &pos_r);
-          Serial.print(pos_l);
+          tilt_field(command, pos);
+          Serial.print(pos[0]);
           Serial.print(",");
-          Serial.println(pos_r);
+          Serial.println(pos[1]);
         }
       }
       Serial.print("1000times :");
