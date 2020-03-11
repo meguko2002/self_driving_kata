@@ -2,10 +2,8 @@
 
 const int MOTOR_DELAY_US = 320;   // 0.32msec/pulse or 2.67msec/deg
 // 0deg: 800ps,  90deg: 1550ps,  180deg: 2200ps
-#define MIN_POS  -10
-#define MAX_POS  10
-const int INIT_POS_L = 3;
-const int INIT_POS_R = 5;
+#define MIN_POS  800
+#define MAX_POS  2200
 
 const int pos_range = (MAX_POS - MIN_POS) / 2;
 const int ctr_pos = (MAX_POS + MIN_POS) / 2;
@@ -42,12 +40,12 @@ int get_command_from_key(int key) {
 
 void tilt_field(int command, int *pos) {
   static int pre_command = -1;
-  static int o_pos[2] = {INIT_POS_L, INIT_POS_R};
+  static int o_pos[2] = {ctr_pos, ctr_pos};
   int target[2] , pt[2], act_index[2];
   const int act_num = 2;
   int next_action_list[2][2];
-  //  int *pos[0] = servo_l.readMicroseconds();
-  //  int *pos[1] = servo_l.readMicroseconds();
+  pos[0] = servo_l.readMicroseconds();
+  pos[1] = servo_r.readMicroseconds();
 
   for (int i = 0; i < 2; i++) target[i] = dir[command][i] * pos_range + ctr_pos;
   for (int i = 0; i < 2; i++) pt[i] = target[i] - pos[i];
@@ -100,14 +98,14 @@ void tilt_field(int command, int *pos) {
   int act, on[2], ot[2], inner_onot;
   float cos2, cosmax, norm_on, norm_ot;
 
-  if (command == pre_command) for (int i = 0; i < 2; i++){
-    ot[i] = target[i] - o_pos[i];
-  }
+  if (command == pre_command) for (int i = 0; i < 2; i++) {
+      ot[i] = target[i] - o_pos[i];
+    }
   else for (int i = 0; i < 2; i++) o_pos[i] = pos[i];
   pre_command = command;
 
   for (int i = 0; i < 2; i++) {
-    for (int j = 0 ; j < 2; j++){
+    for (int j = 0 ; j < 2; j++) {
       on[j] = pos[j] + dir[act_index[i]][j] - o_pos[j];
     }
     inner_onot = on[0] * ot[0] + on[1] * ot[1];
@@ -120,8 +118,8 @@ void tilt_field(int command, int *pos) {
     }
   }
   for (int i = 0; i < 2; i++)  pos[i] = constrain(pos[i] + dir[act][i], MIN_POS, MAX_POS);
-  //  servo_l.writeMicroseconds(pos[0]);
-  //  servo_r.writeMicroseconds(pos[1]);
+    servo_l.writeMicroseconds(pos[0]);
+    servo_r.writeMicroseconds(pos[1]);
 }
 
 void setup() {
@@ -138,7 +136,7 @@ void setup() {
 void loop() {
   char key;
   int command;
-  static int pos[2] = {INIT_POS_L, INIT_POS_R};
+  static int pos[2] = {ctr_pos, ctr_pos};
   unsigned long time;
   Serial.println("key waiting");
   while (1) {
@@ -155,11 +153,11 @@ void loop() {
       }
       else {
         time = millis();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1000; i++) {
           tilt_field(command, pos);
-          Serial.print(pos[0]);
-          Serial.print(",");
-          Serial.println(pos[1]);
+//          Serial.print(pos[0]);
+//          Serial.print(",");
+//          Serial.println(pos[1]);
         }
       }
       Serial.print("1000times :");
