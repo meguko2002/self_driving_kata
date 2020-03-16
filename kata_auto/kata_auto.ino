@@ -128,8 +128,6 @@ void setup() {
   servo_l.attach(SERVO_L, MIN_POS, MAX_POS);
   servo_r.attach(SERVO_R, MIN_POS, MAX_POS);
   Serial.begin(9600);
-  String reportString = "SensorReading: 456";
-  Serial.println(reportString);
 }
 
 
@@ -138,16 +136,10 @@ void loop() {
   int command;
   static int pos[2] = {ctr_pos, ctr_pos};
   unsigned long time;
-  Serial.println("key waiting");
   while (1) {
     if ( Serial.available() > 0 ) {
       key = Serial.read(); //1~9で8方向を表現
-      key -= 48;
-      Serial.print("key: ");
-      Serial.println(key);
-      command = get_command_from_key(key);
-      Serial.print("command: ");
-      Serial.println(command);
+      command = get_command_from_key(key-48);
       if (command == -1) {
         Serial.println("input 1-9");
       }
