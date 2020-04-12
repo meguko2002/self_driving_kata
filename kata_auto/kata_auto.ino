@@ -18,8 +18,8 @@ const int dir[9][2] = {  //dir[command]
   {  1, -1},   //'rr',key='6'
   { 0, 0}     //'rr',key='5'
 };
-//const int keyset[9] = {3, 2, 1, 4, 7, 8, 9, 6, 5};
-const int keyset[9] = {6, 9, 8, 7, 4, 1, 2, 3, 5};
+
+const int com[10] = {-1, 5, 6, 7, 4, 8, 0, 3, 2, 1};  //com[key]
 const int dir_num = sizeof dir / sizeof dir[0] ;
 
 
@@ -27,16 +27,6 @@ const int dir_num = sizeof dir / sizeof dir[0] ;
 #define SERVO_R 6
 
 Servo servo_l, servo_r;
-
-int get_command_from_key(int key) {
-  Serial.println(key);
-  int command = -1;
-  for (int i = 0; i < dir_num ; i++) {
-    if (key == keyset[i]) command = i;
-  }
-  Serial.println(command);
-  return command;
-}
 
 void tilt_field(int command, int *pos) {
   static int pre_command = -1;
@@ -130,7 +120,6 @@ void setup() {
   Serial.begin(9600);
 }
 
-
 void loop() {
   char key;
   int command;
@@ -139,7 +128,7 @@ void loop() {
   while (1) {
     if ( Serial.available() > 0 ) {
       key = Serial.read(); //1~9で8方向を表現
-      command = get_command_from_key(key-48);
+      command = com[key]; //十字キーを使う際は
       if (command == -1) {
         Serial.println("input 1-9");
       }
