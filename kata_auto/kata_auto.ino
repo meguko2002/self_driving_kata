@@ -161,13 +161,12 @@ void loop() {
     if ( Serial.available() > 0 ) {
       key = Serial.read(); //1~9で8方向を表現
       command = com[key]; //十字キーを使う際は
-
-      sv.tilt_field(command);
-
-      Serial.print(sv.get_pos_l());
-      Serial.print(",");
-      Serial.println(sv.get_pos_r());
+      for (int i = 0; i < 1000; i++) {
+        sv.tilt_field(command);
+        Serial.print(sv.get_pos_l());
+        Serial.print(",");
+        Serial.println(sv.get_pos_r());
+      }
     }
   }
-
 }
