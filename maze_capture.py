@@ -5,13 +5,19 @@ import time
 import serial
 
 ser = serial.Serial ( '/dev/tty.' , 9600 , timeout=None )
-
-
-
 # 設定
 color = 3 # 検出する色を指定（1=青,2=緑,3=赤,0=黒）
 # カメラ番号を指定
 cam_id = 0
+
+AREA_WIDTH = 600
+AREA_HEIGHT = 800
+MARGIN = 10
+top_left = (0, 0)
+top_right = (AREA_WIDTH, 0)
+bottom_left = (0, AREA_HEIGHT)
+bottom_right = (AREA_WIDTH, AREA_HEIGHT)
+dir_key = {'right':6, 'top_right':9, 'top':8, 'top_left':7, 'left':4, 'bottom_left':1, 'bottom':2, 'bottom_right':3, 'center':5}
 
 # 画像表示用の変数
 g_frame = None
@@ -69,6 +75,24 @@ def keystone_correction(img):
     return dst
 
 # 各色の位置を検出する
+def calc_dir(x, y):     # cycle clockwise
+    # TODO 玉の座標と予定経路から玉の移動方向を決める
+    # TODO 玉の位置・速度・加速度と予定経路から玉の移動方向、加減速度を決める
+    # TODO 玉の位置、予定経路、玉の行き先の壁の状態から、、、
+
+    if x < top_left[0] + MARGIN and y < top_left[1] + MARGIN:
+        direction = dir_key['top_right']
+    elif x > top_right[0] - MARGIN and y < top_right[1] - MARGIN:
+        direction = dir_key['bottom_right']
+    elif x > bottom_right[0] - MARGIN and y > bottom_right[1]-MARGIN:
+        direction = dir_key['bottom_left']
+    elif x < bottom_left[0] + MARGIN and y > bottom_left[1] - MARGIN:
+        direction = dir_key['top_left']
+    else:
+        direction = dir_key['center']
+    return direction
+
+
 def color_pick(img, color):
     global g_hsv
 
@@ -130,8 +154,9 @@ def color_pick(img, color):
     # 検出した領域を表示
     cv2.drawContours(img, [best_cnt], -1, (0, 255, 0), 3)
     # print(f"({cx}, {cy})")
-
-    return mask, cx, cy
+    dir = calc_dir(cx, cy)
+    ser.write(dir)
+    return mask
 
 # 画像処理スレッド
 def capture_thread():
@@ -155,13 +180,11 @@ def capture_thread():
         g_frame = frame
         if dst is not None:
             # 迷路の中から指定色の物体を検出する
-            mask, cx, cy = color_pick(dst, color)
+            mask = color_pick(dst, color)
             g_dst = dst
             g_mask = mask
-            if cx is not None and cy is not None:
-                # # mqttで座標を送信
-                # client.publish('enemy', '%d:%d' % (cx,cy))
-                ser.write (cx)
+
+
         # FPSを計算する
         current_t = time.perf_counter()
         cnt += 1
