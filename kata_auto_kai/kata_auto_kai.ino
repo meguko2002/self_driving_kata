@@ -88,22 +88,27 @@ int change2key(int input) {  //　数字を数値に変換、数字以外は-1�
 
 int dirct_decision(int key, int *pos) {
   static int pre_key = 0;
-  static int start[2];
+  int start[2];
+  static int start0, start1;
   int *goal;
   static int change_dir_flag = 0;  // 次のステップで方向を変える必要がある場合に1が立つ（xy軸に平行でない目標線上から一歩進んだ次のステップ）
-  static int pre_pos[2];
-
+  //  static int pre_pos[2];
+  static int pre_pos0, pre_pos1;
 
   //start goalの設定（ただしkeyが変わらければそのまま）
   if (key != pre_key) {
-    start[0] = pos[0];
-    start[1] = pos[1];
-    goal = target[key];
+    start0 = pos[0];
+    start1 = pos[1];
   }
+  goal = target[key];
+  start[0] = start0;
+  start[1] = start1;
+
   pre_key = key;
-  pre_pos[0] = pos[0];
-  pre_pos[1] = pos[1];
-  
+  pre_pos0 = pos[0];
+  pre_pos1 = pos[1];
+
+
   if (pos[0] == goal[0] & pos[1] == goal[1]) {}
   //  clock_step = 0;  //goalに到着していれば何もしない
 
@@ -127,17 +132,17 @@ int dirct_decision(int key, int *pos) {
     change_dir_flag = 1;  //次のステップは方向を変える
   }
   else {   //posが線上でないなら
-    if (pos[1] != pre_pos[1]) { //前のステップがy方向のとき
+    if (pos[1] != pre_pos1) { //前のステップがy方向のとき
       // 線マタギなら次のステップはx方向に切り替え
-      if ((border_y(pos[0], start, goal) - pre_pos[1]) * (border_y(pos[0], start, goal) - pos[1]) < 0
+      if ((border_y(pos[0], start, goal) - pre_pos1) * (border_y(pos[0], start, goal) - pos[1]) < 0
           | change_dir_flag == 1 ) {
         if (goal[0] > pos[0]) pos[0]++;
         else pos[0]--;
       }
     }
-    else if (pos[0] != pre_pos[0]) { //前のステップがx方向のとき
+    else if (pos[0] != pre_pos0) { //前のステップがx方向のとき
       // 線マタギなら次のステップはy方向に切り替え
-      if ((border_x(pos[1], start, goal) - pre_pos[0]) * (border_x(pos[1], start, goal) - pos[0]) < 0
+      if ((border_x(pos[1], start, goal) - pre_pos0) * (border_x(pos[1], start, goal) - pos[0]) < 0
           | change_dir_flag == 1) {
         if (goal[1] > pos[1]) pos[1]++;
         else pos[1]--;
